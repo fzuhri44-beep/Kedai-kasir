@@ -1,0 +1,131 @@
+{
+  "entities": {
+    "MenuItem": {
+      "title": "MenuItem",
+      "description": "Produk menu makanan, minuman, cemilan, atau paket yang dijual di Kedai Aa Sulthan.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID pengguna terautentikasi pemilik kedai."
+        },
+        "name": {
+          "type": "string",
+          "description": "Nama menu (1-60 karakter)."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["Makanan", "Minuman", "Cemilan", "Paket"],
+          "description": "Kategori menu kedai."
+        },
+        "price": {
+          "type": "integer",
+          "description": "Harga satuan dalam Rupiah (> 0 dan <= 100000000)."
+        },
+        "available": {
+          "type": "boolean",
+          "description": "Status ketersediaan stok menu."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp pembuatan (klien wajib mengirim FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp pembaruan terakhir (klien wajib mengirim FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "name",
+        "category",
+        "price",
+        "available",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PosTransaction": {
+      "title": "PosTransaction",
+      "description": "Catatan transaksi penjualan kasir dan detail struk Kedai Aa Sulthan.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID pengguna terautentikasi."
+        },
+        "receiptNumber": {
+          "type": "string",
+          "description": "Nomor struk transaksi (3-40 karakter)."
+        },
+        "customerNote": {
+          "type": "string",
+          "description": "Catatan opsional nama pelanggan atau nomor meja (maks 80 karakter)."
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["Tunai", "QRIS", "Transfer"],
+          "description": "Metode pembayaran transaksi."
+        },
+        "totalAmount": {
+          "type": "integer",
+          "description": "Total tagihan dalam Rupiah (> 0)."
+        },
+        "cashReceived": {
+          "type": "integer",
+          "description": "Jumlah uang diterima dalam Rupiah (>= 0)."
+        },
+        "changeAmount": {
+          "type": "integer",
+          "description": "Jumlah kembalian dalam Rupiah (>= 0)."
+        },
+        "itemCount": {
+          "type": "integer",
+          "description": "Total kuantitas item terjual (>= 1)."
+        },
+        "items": {
+          "type": "array",
+          "description": "Daftar ringkas item pesanan (1-50 item)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp transaksi dibuat (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp transaksi diperbarui (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "receiptNumber",
+        "paymentMethod",
+        "totalAmount",
+        "cashReceived",
+        "changeAmount",
+        "itemCount",
+        "items",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/menuItems/{itemId}": {
+      "schema": {
+        "$ref": "#/entities/MenuItem"
+      },
+      "description": "Koleksi katalog menu per pemilik kedai."
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": {
+        "$ref": "#/entities/PosTransaction"
+      },
+      "description": "Koleksi riwayat transaksi penjualan kasir per pemilik kedai."
+    }
+  }
+}

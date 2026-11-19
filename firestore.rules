@@ -1,0 +1,89 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidMenuItem(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 60 &&
+             data.category is string && data.category in ['Makanan', 'Minuman', 'Cemilan', 'Paket'] &&
+             data.price is int && data.price > 0 && data.price <= 100000000 &&
+             data.available is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidTransaction(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.receiptNumber is string && data.receiptNumber.size() >= 3 && data.receiptNumber.size() <= 40 &&
+             (!('customerNote' in data) || (data.customerNote is string && data.customerNote.size() <= 80)) &&
+             data.paymentMethod is string && data.paymentMethod in ['Tunai', 'QRIS', 'Transfer'] &&
+             data.totalAmount is int && data.totalAmount > 0 && data.totalAmount <= 500000000 &&
+             data.cashReceived is int && data.cashReceived >= 0 && data.cashReceived <= 500000000 &&
+             data.changeAmount is int && data.changeAmount >= 0 && data.changeAmount <= 500000000 &&
+             data.itemCount is int && data.itemCount >= 1 && data.itemCount <= 500 &&
+             data.items is list && data.items.size() >= 1 && data.items.size() <= 50 && data.items[0] is map &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId}/menuItems/{itemId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(itemId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(itemId) &&
+                       incoming().keys().hasAll(['userId', 'name', 'category', 'price', 'available', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'name', 'category', 'price', 'available', 'createdAt', 'updatedAt']) &&
+                       isValidMenuItem(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(itemId) &&
+                       isValidMenuItem(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['name', 'category', 'price', 'available', 'updatedAt']);
+
+      allow delete: if isOwner(userId) && isValidId(itemId);
+    }
+
+    match /users/{userId}/transactions/{transactionId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(transactionId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(transactionId) &&
+                       incoming().keys().hasAll(['userId', 'receiptNumber', 'paymentMethod', 'totalAmount', 'cashReceived', 'changeAmount', 'itemCount', 'items', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'receiptNumber', 'customerNote', 'paymentMethod', 'totalAmount', 'cashReceived', 'changeAmount', 'itemCount', 'items', 'createdAt', 'updatedAt']) &&
+                       isValidTransaction(incoming(), userId);
+
+      // Completed sales receipts are immutable; erroneous entries can be voided via delete.
+      allow update: if false;
+
+      allow delete: if isOwner(userId) && isValidId(transactionId);
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "Kedai Aa Sulthan",
+  "description": "Aplikasi kasir (Point of Sale) untuk Kedai Aa Sulthan dengan pencatatan pesanan, manajemen menu, dan laporan penjualan harian.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
